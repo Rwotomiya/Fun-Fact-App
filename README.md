@@ -20,24 +20,6 @@ A Python-based application for tracking student attendance across three subjects
 2. Run the `attendance_tracker.py` script:
    ```bash
    python attendance_tracker.py
- contains three distinct Python applications, each designed to demonstrate different programming concepts and functionalities. Below is an overview of each project.
-
-## Projects
-
-### 1. Attendance Tracker
-A Python-based application for tracking student attendance across three subjects. It saves attendance data in an Excel file and sends automated email reminders to students about their attendance.
-
-#### Features:
-- Records attendance for multiple subjects.
-- Stores data in an Excel file.
-- Sends email reminders for missed classes.
-- Configurable email settings.
-
-#### How to Run:
-1. Navigate to the `attendance-tracker` folder.
-2. Run the `attendance_tracker.py` script:
-   ```bash
-   python attendance_tracker.py
    ```
 
 ### 2. Weather Notifier
