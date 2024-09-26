@@ -11,8 +11,8 @@ def load_workbook(file_path):
 
 # Function to send email
 def send_email(to_email, subject, message_body):
-    sender_email = "daudivincent20@gmail.com"
-    sender_password = "butz gsdi hbpj uaop"  # Use an app-specific password if using Gmail
+    sender_email = "PUT YOUR EMAIL HERE"
+    sender_password = "PUT THE APP SPECIFIC PASSWORD"  # Use an app-specific password if using Gmail
 
     msg = MIMEMultipart()
     msg['From'] = sender_email
