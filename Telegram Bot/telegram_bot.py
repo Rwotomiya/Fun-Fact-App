@@ -1,111 +1,94 @@
-import requests
-from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters
-from tmdbv3api import TMDb, Movie
-from collections import defaultdict
+import pyautogui
+import time
+import datetime
 import asyncio
+from telegram import Update
+from telegram.ext import Application, CommandHandler, ContextTypes
 
-# Initialize TMDb API
-tmdb = TMDb()
-tmdb.api_key = 'b76f443625dcf981f3660aae01ffa3dc'
-movie = Movie()
-
-# Genre Mapping
-GENRE_MAPPING = {
-    'Action': 28,
-    'Adventure': 12,
-    'Animation': 16,
-    'Comedy': 35,
-    'Crime': 80,
-    'Documentary': 99,
-    'Drama': 18,
-    'Family': 10751,
-    'Fantasy': 14,
-    'History': 36,
-    'Horror': 27,
-    'Music': 10402,
-    'Mystery': 9648,
-    'Romance': 10749,
-    'Science Fiction': 878,
-    'TV Movie': 10770,
-    'Thriller': 53,
-    'War': 10752,
-    'Western': 37
-}
-
-# Function to search movies
-def search_movies(genre_id=None, sort_by='popularity.desc'):
-    results = movie.popular()
-    if genre_id:
-        filtered_results = [m for m in results if genre_id in m.genre_ids]
-        results = filtered_results
+# Function to simulate typing the message and track the time it was sent
+async def type_and_log(update: Update, message: str, interval: float) -> None:
+    # Get the current timestamp
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
-    # Sort results based on the specified criteria
-    if sort_by == 'popularity.desc':
-        results = sorted(results, key=lambda x: x.popularity, reverse=True)
-    elif sort_by == 'vote_count.desc':
-        results = sorted(results, key=lambda x: x.vote_count, reverse=True)
-    elif sort_by == 'vote_average.desc':
-        results = sorted(results, key=lambda x: x.vote_average, reverse=True)
+    # Log the time when the message is sent
+    print(f"[{timestamp}] Sending message: {message}")
     
-    return results
+    # Simulate typing the message using pyautogui
+    pyautogui.typewrite(message)
+    
+    # Add a delay between each message
+    time.sleep(interval)
 
-# Helper function to get genre ID
-def get_genre_id(genre_name):
-    return GENRE_MAPPING.get(genre_name)
+# Function to send spam messages with typewrite
+async def spam(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    # Check if all arguments are provided
+    if len(context.args) < 3:
+        await update.message.reply_text("Usage: /spam <message> <count> <interval>")
+        return
 
-# Bot Class
-class TelegramBot:
-    def __init__(self, token):
-        self.token = token
-        self.application = Application.builder().token(self.token).build()
-        self.user_stats = defaultdict(int)
+    # Parse the arguments
+    message = context.args[0]  # Message to spam
+    try:
+        count = int(context.args[1])  # Number of times to send
+        interval = float(context.args[2])  # Delay between each message in seconds
+    except ValueError:
+        await update.message.reply_text("Please provide a valid number for count and interval.")
+        return
 
-    async def start(self, update: Update, context):
-        user_id = update.effective_chat.id
-        self.user_stats[user_id] += 1
-        await context.bot.send_message(chat_id=update.effective_chat.id, text="Hello! I'm your bot. How can I help you?")
+    # Send the message the specified number of times
+    for i in range(count):
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Log and send the message
+        await update.message.reply_text(f"{message} (Message {i + 1} of {count})")
+        await type_and_log(update, f"{message} (Message {i + 1} of {count})", interval)
+        print(f"[{timestamp}] Message {i + 1} sent.")
+        
+        # Wait for the interval before sending the next message
+        await asyncio.sleep(interval)
 
-    async def help(self, update: Update, context):
-        help_text = """
-        Available Commands:
-        /start - Start interacting with the bot
-        /help - Display this help message
-        /weather <city> - Get weather information for a specific city
-        /joke - Get a random joke
-        /news - Get the latest news headlines
-        /movies <genre> - Search for movies by genre
-        """
-        await context.bot.send_message(chat_id=update.effective_chat.id, text=help_text)
+    await update.message.reply_text("Spamming completed!")
 
-    async def movies(self, update: Update, context):
-        genre_name = ' '.join(context.args)
-        if not genre_name:
-            await context.bot.send_message(chat_id=update.effective_chat.id, text="Please specify a genre.")
-            return
+# Command to start the bot
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text(
+        "Welcome to the Spam Bot!\n\n"
+        "I can send spam messages for you.\n"
+        "Use the /spam command to send multiple messages.\n\n"
+        "Commands:\n"
+        "/spam <message> <count> <interval> - Send a spam message\n"
+        "/help - Show this help message\n"
+    )
 
-        genre_id = get_genre_id(genre_name)
+# Command to show help instructions
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text(
+        "Usage of the Spam Bot:\n\n"
+        "/spam <message> <count> <interval> - Spam a message multiple times.\n"
+        "  - <message>: The message you want to spam.\n"
+        "  - <count>: How many times you want to send the message.\n"
+        "  - <interval>: The time interval (in seconds) between each message.\n\n"
+        "Example: /spam Hello 5 2\n"
+        "This will send 'Hello' 5 times with a 2-second interval between each.\n\n"
+        "You can also type /start to get this message again."
+    )
 
-        if genre_id:
-            trending_movies = search_movies(genre_id=genre_id, sort_by='popularity.desc')
-            message = "Trending Movies:\n"
-            message += "\n".join([f"{m.title} ({m.release_date.split('-')[0]})" for m in trending_movies])
-            await context.bot.send_message(chat_id=update.effective_chat.id, text=message)
-        else:
-            await context.bot.send_message(chat_id=update.effective_chat.id, text=f"Genre '{genre_name}' not found.")
+# Function to start the bot
+def main():
+    # Initialize the bot with your token
+    app = Application.builder().token("YOUR_BOT_TOKEN").build()
 
-    def setup_handlers(self):
-        self.application.add_handler(CommandHandler('start', self.start))
-        self.application.add_handler(CommandHandler('help', self.help))
-        self.application.add_handler(CommandHandler('movies', self.movies))
+    # Command to start the bot
+    app.add_handler(CommandHandler("start", start))
 
-    async def run(self):
-        self.setup_handlers()
-        await self.application.run_polling()  # Start polling to listen for updates
+    # Command to show help
+    app.add_handler(CommandHandler("help", help_command))
 
-async def main():
-    bot = TelegramBot(token='7510427301:AAEpmzXzcTaGQ479m4Lx8AlVvuO1t-CAorU')
-    await bot.run()
+    # Command to start spamming
+    app.add_handler(CommandHandler("spam", spam))
 
-if __name__ == "__main__":
-    asyncio.run(main())
+    # Start polling for updates
+    app.run_polling()
+
+if __name__ == '__main__':
+    main()
